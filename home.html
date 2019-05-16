@@ -29,6 +29,7 @@ Connecting...<br>
         ws.onmessage = function(e) {
             document.getElementById("content").innerHTML +=
                 '<div>' + e.data +'</div>';
+            window.scrollTo(0,document.body.scrollHeight);
         };
         ws.onerror = function(e) {
             document.getElementById("content").innerHTML += 'ERROR! ' + e +'<br>';
