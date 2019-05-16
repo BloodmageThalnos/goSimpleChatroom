@@ -14,6 +14,10 @@
             <button id="send" style="position:relative;top:-30px;font-size:30px;">Send</button>
         </form>
     </div>
+    <div style="height:300px;width:20%;position:fixed;right:0;background-color:white;">
+        在线列表：
+        <div id="list"></div>
+    </div>
     <div style="padding-bottom: 100px;" id="content">
 Connecting...<br>
     </div>
@@ -41,6 +45,18 @@ Connecting...<br>
             return false;
         };
         nama = prompt("Hi. What's your name?");
+
+        ls = new WebSocket("ws://" + window.location.host + "/list");
+        ls.onopen = function(){
+            ls.send(nama);
+        }
+        ls.onmessage = function(e) {
+            document.getElementById("list").innerHTML =
+                '<div>' + e.data +'</div>';
+        };
+        ls.onerror = function(e) {
+            console.log(e)
+        };
     </script>
 </body>
 </html>
