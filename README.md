@@ -2,8 +2,10 @@
 a simple chatroom using websocket written in go.
 
 ## Start
-```go get -u -t https://github.com/BloodmageThalnos/goSimpleChatroom.git
-go run```
+```
+go get -u -t https://github.com/BloodmageThalnos/goSimpleChatroom.git
+go run
+```
 
 ## Feature
  - Multi-chatting 群聊
