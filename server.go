@@ -13,12 +13,13 @@ type Msg struct {
 	Type    int8              `msg:"typ"`
 	Content string            `msg:"msg"`
 	User    map[string]string `msg:"usr"`
+	_only   int               `msg:"-"`
 }
 
 var msgCount = 0
 var msg []Msg
-var userId = 0
-var users = Msg{0, "", make(map[string]string)}
+var userId = 1
+var users = Msg{0, "", make(map[string]string), 0}
 var chans = make(map[int]chan bool)
 
 func broadcast() {
@@ -46,10 +47,12 @@ func act(w http.ResponseWriter, r *http.Request) {
 		for { // 消息同步服务器
 			if count < msgCount {
 				count++
-				send, _ := msg[count-1].MarshalMsg(nil)
-				err := c.WriteMessage(websocket.BinaryMessage, send)
-				if err != nil {
-					return
+				if msg[count-1]._only == 0 || msg[count-1]._only == id {
+					send, _ := msg[count-1].MarshalMsg(nil)
+					err := c.WriteMessage(websocket.BinaryMessage, send)
+					if err != nil {
+						return
+					}
 				}
 			}
 			time.Sleep(10 * time.Millisecond)
@@ -69,7 +72,6 @@ func act(w http.ResponseWriter, r *http.Request) {
 	broadcast()
 	for {
 		mt, message, err := c.ReadMessage()
-		log.Printf("%v", message)
 		if err != nil {
 			log.Print("Close instruction received and irremediably executed.")
 			delete(users.User, strconv.Itoa(id))
@@ -77,8 +79,21 @@ func act(w http.ResponseWriter, r *http.Request) {
 			broadcast()
 			return
 		}
-		msg = append(msg, Msg{1, string(message), nil})
-		msgCount++
+		rcv := Msg{}
+		_, _ = rcv.UnmarshalMsg(message)
+		log.Printf("%v", rcv)
+		if rcv.Type == 3 {
+			output := "<span style=\"color:blue\">" + string(name) + ": </span>" + rcv.Content
+			msg = append(msg, Msg{1, output, nil, 0})
+			msgCount++
+		} else if rcv.Type == 4 {
+			toid, _ := strconv.Atoi(rcv.User["_"])
+			output := "<span style=\"color:purple\">[" + string(name) + "]悄悄地对你说: </span>" + rcv.Content
+			msg = append(msg, Msg{1, output, nil, toid})
+			output = "<span style=\"color:purple\">你悄悄地对[" + string(name) + "]说: </span>" + rcv.Content
+			msg = append(msg, Msg{1, output, nil, id})
+			msgCount += 2
+		}
 		log.Printf("Get message %v %s.", mt, message)
 	}
 }

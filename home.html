@@ -8,10 +8,11 @@
     </script>
 </head>
 <body style="font-size:30px;">
-    <div style="height:100px;width:100%;position:fixed;bottom:0;background-color:white;">
+    <div style="height:60px;width:100%;position:fixed;bottom:0;background-color:white;">
         <form id="form">
-            <input id="text" style="width: 70%;height:80px;font-size:30px;" />
-            <button id="send" style="position:relative;top:-30px;font-size:30px;">Send</button>
+            <span id="spa" style="font-size:30px;">To 全体</span>
+            <input id="text" style="width: 70%;height:40px;font-size:30px;" />
+            <button id="send" style="position:relative;font-size:30px;">Send</button>
         </form>
     </div>
     <div style="height:300px;width:20%;position:fixed;right:0;background-color:white;">
@@ -24,6 +25,7 @@ Connecting...<br>
 
     <script>
         nama = prompt("Hi. What's your name?");
+        if(nama.length>10)nama=nama.substr(0,8)+'...';
         ws = new WebSocket("ws://" + window.location.host + "/action");
         ws.binaryType = "arraybuffer";
         ws.onopen = function(e) {
@@ -39,7 +41,7 @@ Connecting...<br>
                 d = dat.usr;
                 list = "";
                 for(i in d){
-                    list+="<li>"+d[i]+"</li>";
+                    list+="<li>"+d[i]+'<span style="color:deepskyblue;" onclick="s('+i+',\''+d[i]+'\');"> [私聊]</span></li>';
                 }
                 document.getElementById("list").innerHTML =
                     '<div><ul>' + list +'</ul></div>';
@@ -54,10 +56,20 @@ Connecting...<br>
         };
         document.getElementById("form").onsubmit = function() {
             if (!ws) {return false;}
-            ws.send("<span style=\"color:blue\">" + nama + ": </span>" + document.getElementById("text").value);
+            if (!sendto) {
+                msg = msgpack.serialize({'typ': 3, 'msg': document.getElementById("text").value, 'usr': {}});
+            } else {
+                msg = msgpack.serialize({'typ': 4, 'msg': document.getElementById("text").value, 'usr': {"_":sendto}});
+            }
+            ws.send(msg);
             document.getElementById("text").value = "";
             return false;
         };
+        function s(p,n){
+            document.getElementById("spa").innerHTML='To '+n;
+            sendto = ""+p;
+            console.log(sendto)
+        }
     </script>
 </body>
 </html>
