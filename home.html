@@ -54,6 +54,7 @@ Connecting...<br>
         ws.onerror = function(e) {
             document.getElementById("content").innerHTML += 'ERROR! ' + e +'<br>';
         };
+        sendto=0;
         document.getElementById("form").onsubmit = function() {
             if (!ws) {return false;}
             if (!sendto) {
