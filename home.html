@@ -47,12 +47,18 @@ Connecting...<br>
         nama = prompt("Hi. What's your name?");
 
         ls = new WebSocket("ws://" + window.location.host + "/list");
+        ls.binaryType = "arraybuffer";
         ls.onopen = function(){
             ls.send(nama);
-        }
+        };
         ls.onmessage = function(e) {
+            d = msgpack.deserialize(new Uint8Array(e.data));
+            list="";
+            for(i in d.user){
+                list+="<li>"+d.user[i]+"</li>";
+            }
             document.getElementById("list").innerHTML =
-                '<div>' + e.data +'</div>';
+                '<div><ul>' + list +'</ul></div>';
         };
         ls.onerror = function(e) {
             console.log(e)

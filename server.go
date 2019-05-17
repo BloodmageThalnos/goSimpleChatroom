@@ -1,12 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
+
+//go:generate msgp
+type Msg struct {
+	User map[string]string `msg:"user"`
+}
 
 var upgrader = websocket.Upgrader{}
 
@@ -50,7 +55,7 @@ func act(w http.ResponseWriter, r *http.Request) {
 
 var userId = 0
 var Count = 0
-var users = make(map[int][]byte)
+var users = Msg{make(map[string]string)}
 
 func lis(w http.ResponseWriter, r *http.Request) {
 	c, _ := upgrader.Upgrade(w, r, nil)
@@ -62,26 +67,20 @@ func lis(w http.ResponseWriter, r *http.Request) {
 	}
 	id := Count
 	Count++
-	users[id] = name
-	userId++
-	//nowid:=0
+	users.User[strconv.Itoa(id)] = string(name)
 	for {
-		//if nowid != userId {
-		//	nowid = userId
-		var msg bytes.Buffer
-		for _, key := range users {
-			msg.Write(key)
-			msg.Write([]byte("<br>"))
+		packed, err0 := users.MarshalMsg(nil)
+		if err0 != nil {
+			log.Println(err0)
 		}
-		//	log.Printf("List update: %v", msg)
-		err := c.WriteMessage(websocket.TextMessage, msg.Bytes())
+		log.Printf("%v %v", users, packed)
+		err := c.WriteMessage(websocket.BinaryMessage, packed)
 		if err != nil {
-			delete(users, id)
+			delete(users.User, strconv.Itoa(id))
 			userId--
 			log.Println(err)
 			return
 		}
-		//}
 		time.Sleep(1 * time.Second)
 	}
 }
