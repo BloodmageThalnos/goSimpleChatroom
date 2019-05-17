@@ -23,17 +23,31 @@ Connecting...<br>
     </div>
 
     <script>
+        nama = prompt("Hi. What's your name?");
         ws = new WebSocket("ws://" + window.location.host + "/action");
+        ws.binaryType = "arraybuffer";
         ws.onopen = function(e) {
-            document.getElementById("content").innerHTML += 'Connection established.<br>'
+            document.getElementById("content").innerHTML += 'Connection established.<br>';
+            ws.send(nama)
         };
         ws.onclose = function(e) {
             document.getElementById("content").innerHTML += 'Connection closed.<br>'
         };
         ws.onmessage = function(e) {
-            document.getElementById("content").innerHTML +=
-                '<div>' + e.data +'</div>';
-            window.scrollTo(0,document.body.scrollHeight);
+            dat = msgpack.deserialize(new Uint8Array(e.data));
+            if(dat.typ === 0) {
+                d = dat.usr;
+                list = "";
+                for(i in d){
+                    list+="<li>"+d[i]+"</li>";
+                }
+                document.getElementById("list").innerHTML =
+                    '<div><ul>' + list +'</ul></div>';
+            }else{
+                document.getElementById("content").innerHTML +=
+                    '<div>' + dat.msg.replace("script","") + '</div>';
+                window.scrollTo(0,document.body.scrollHeight);
+            }
         };
         ws.onerror = function(e) {
             document.getElementById("content").innerHTML += 'ERROR! ' + e +'<br>';
@@ -43,25 +57,6 @@ Connecting...<br>
             ws.send("<span style=\"color:blue\">" + nama + ": </span>" + document.getElementById("text").value);
             document.getElementById("text").value = "";
             return false;
-        };
-        nama = prompt("Hi. What's your name?");
-
-        ls = new WebSocket("ws://" + window.location.host + "/list");
-        ls.binaryType = "arraybuffer";
-        ls.onopen = function(){
-            ls.send(nama);
-        };
-        ls.onmessage = function(e) {
-            d = msgpack.deserialize(new Uint8Array(e.data));
-            list="";
-            for(i in d.user){
-                list+="<li>"+d.user[i]+"</li>";
-            }
-            document.getElementById("list").innerHTML =
-                '<div><ul>' + list +'</ul></div>';
-        };
-        ls.onerror = function(e) {
-            console.log(e)
         };
     </script>
 </body>
