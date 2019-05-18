@@ -64,10 +64,12 @@ Connecting...<br>
         };
         document.getElementById("form").onsubmit = function() {
             if (!ws) {return false;}
+            val = document.getElementById("text").value;
+            if (!val) {return false;}
             if (!sendto) {
-                msg = msgpack.serialize({'typ': 3, 'msg': document.getElementById("text").value, 'usr': {}});
+                msg = msgpack.serialize({'typ': 3, 'msg': val, 'usr': {}});
             } else {
-                msg = msgpack.serialize({'typ': 4, 'msg': document.getElementById("text").value, 'usr': {"_":sendto}});
+                msg = msgpack.serialize({'typ': 4, 'msg': val, 'usr': {"_":sendto}});
             }
             ws.send(msg);
             document.getElementById("text").value = "";
