@@ -32,16 +32,16 @@ func act(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
 	c, _ := upgrader.Upgrade(w, r, nil)
 	defer c.Close()
-	_, name, err := c.ReadMessage()
-	log.Printf("%v", name)
+	_, bname, err := c.ReadMessage()
 	if err != nil {
-		log.Printf("Client hopelessly closed connection.")
 		return
 	}
 	id := userId
 	chans[id] = make(chan bool)
 	userId++
-	users.User[strconv.Itoa(id)] = string(name)
+	name := string(bname)
+	users.User[strconv.Itoa(id)] = name
+	log.Printf("Here comes " + name)
 	go func() {
 		count := 0
 		for { // 消息同步服务器
@@ -55,14 +55,13 @@ func act(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(20 * time.Millisecond)
 		}
 	}()
 	go func() { // 用户列表服务器
 		for {
 			<-chans[id]
 			packed, _ := users.MarshalMsg(nil)
-			log.Printf("%v %v", users, packed)
 			err := c.WriteMessage(websocket.BinaryMessage, packed)
 			if err != nil {
 				return
@@ -71,9 +70,9 @@ func act(w http.ResponseWriter, r *http.Request) {
 	}()
 	broadcast()
 	for {
-		mt, message, err := c.ReadMessage()
+		_, message, err := c.ReadMessage()
 		if err != nil {
-			log.Print("Close instruction received and irremediably executed.")
+			log.Println("Closed " + name)
 			delete(users.User, strconv.Itoa(id))
 			delete(chans, id)
 			broadcast()
@@ -83,24 +82,23 @@ func act(w http.ResponseWriter, r *http.Request) {
 		_, _ = rcv.UnmarshalMsg(message)
 		log.Printf("%v", rcv)
 		if rcv.Type == 3 {
-			output := "<span style=\"color:blue\">" + string(name) + ": </span>" + rcv.Content
+			output := "<span style=\"color:blue\">" + name + ": </span>" + rcv.Content
 			msg = append(msg, Msg{1, output, nil, 0})
 			msgCount++
 		} else if rcv.Type == 4 {
 			toid, _ := strconv.Atoi(rcv.User["_"])
-			output := "<span style=\"color:purple\">[" + string(name) + "]悄悄地对你说: </span>" + rcv.Content
-			msg = append(msg, Msg{1, output, nil, toid})
-			output = "<span style=\"color:purple\">你悄悄地对[" + string(name) + "]说: </span>" + rcv.Content
+			toname := users.User[rcv.User["_"]]
+			output := "<span style=\"color:purple\">你悄悄地对[" + toname + "]说: </span>" + rcv.Content
 			msg = append(msg, Msg{1, output, nil, id})
+			output = "<span style=\"color:purple\">[" + name + "]悄悄地对你说: </span>" + rcv.Content
+			msg = append(msg, Msg{1, output, nil, toid})
 			msgCount += 2
 		}
-		log.Printf("Get message %v %s.", mt, message)
 	}
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "home.html")
-	log.Println("Here comes a new toy!")
 }
 
 func main() {
